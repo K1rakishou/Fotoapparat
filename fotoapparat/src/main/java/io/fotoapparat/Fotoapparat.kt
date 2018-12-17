@@ -27,6 +27,8 @@ import io.fotoapparat.routine.zoom.updateZoomLevel
 import io.fotoapparat.selector.*
 import io.fotoapparat.view.CameraRenderer
 import io.fotoapparat.view.FocalPointSelector
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Camera. Takes pictures.
@@ -77,13 +79,19 @@ class Fotoapparat
      *
      * @throws IllegalStateException If the camera has already started.
      */
-    fun start() {
+    suspend fun start() {
         logger.recordMethod()
 
-        device.bootStart(
-          orientationSensor = orientationSensor,
-          mainThreadErrorCallback = mainThreadErrorCallback
-        )
+        return suspendCoroutine { cont ->
+            executor.execute(Operation {
+                device.bootStart(
+                    orientationSensor = orientationSensor,
+                    mainThreadErrorCallback = mainThreadErrorCallback
+                )
+
+                cont.resume(Unit)
+            })
+        }
     }
 
     /**
@@ -91,13 +99,19 @@ class Fotoapparat
      *
      * @throws IllegalStateException If the camera has not started.
      */
-    fun stop() {
+    suspend fun stop() {
         logger.recordMethod()
-
         executor.cancelTasks()
-        device.shutDown(
-          orientationSensor = orientationSensor
-        )
+
+        return suspendCoroutine { cont ->
+            executor.execute(Operation {
+                device.shutDown(
+                    orientationSensor = orientationSensor
+                )
+
+                cont.resume(Unit)
+            })
+        }
     }
 
     /**
